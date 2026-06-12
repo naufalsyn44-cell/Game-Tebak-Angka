@@ -1,0 +1,623 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Tebak Angka</title>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:       #0d0f14;
+      --surface:  #161920;
+      --border:   #252a35;
+      --accent:   #7c6cfc;
+      --glow:     #7c6cfc44;
+      --green:    #3effa0;
+      --red:      #ff5a7e;
+      --yellow:   #ffd84d;
+      --text:     #e8eaf0;
+      --muted:    #6b7280;
+      --radius:   14px;
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Space Grotesk', sans-serif;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+    }
+
+    /* Stars background */
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background-image:
+        radial-gradient(1px 1px at 10% 20%, #ffffff22, transparent),
+        radial-gradient(1px 1px at 30% 60%, #ffffff18, transparent),
+        radial-gradient(1px 1px at 50% 10%, #ffffff20, transparent),
+        radial-gradient(1px 1px at 70% 80%, #ffffff15, transparent),
+        radial-gradient(1px 1px at 90% 35%, #ffffff22, transparent),
+        radial-gradient(1px 1px at 20% 90%, #ffffff18, transparent),
+        radial-gradient(1px 1px at 80% 50%, #ffffff20, transparent),
+        radial-gradient(1.5px 1.5px at 55% 45%, #ffffff12, transparent);
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    .container {
+      position: relative;
+      z-index: 1;
+      width: 100%;
+      max-width: 480px;
+    }
+
+    /* Header */
+    .header {
+      text-align: center;
+      margin-bottom: 32px;
+    }
+    .header .eyebrow {
+      font-family: 'Space Mono', monospace;
+      font-size: 11px;
+      letter-spacing: 3px;
+      color: var(--accent);
+      text-transform: uppercase;
+      margin-bottom: 10px;
+    }
+    .header h1 {
+      font-size: clamp(28px, 6vw, 40px);
+      font-weight: 700;
+      letter-spacing: -1px;
+      line-height: 1.1;
+    }
+    .header h1 span {
+      color: var(--accent);
+      text-shadow: 0 0 24px var(--glow);
+    }
+
+    /* Card */
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 28px 24px;
+      margin-bottom: 16px;
+    }
+
+    /* Difficulty selector */
+    .difficulty-row {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 0;
+    }
+    .diff-btn {
+      flex: 1;
+      padding: 9px 0;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      background: transparent;
+      color: var(--muted);
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .diff-btn:hover { border-color: var(--accent); color: var(--text); }
+    .diff-btn.active {
+      background: var(--accent);
+      border-color: var(--accent);
+      color: #fff;
+      box-shadow: 0 0 16px var(--glow);
+    }
+
+    /* Range display */
+    .range-display {
+      text-align: center;
+      padding: 20px 0 8px;
+    }
+    .range-display .big {
+      font-family: 'Space Mono', monospace;
+      font-size: 42px;
+      font-weight: 700;
+      color: var(--accent);
+      text-shadow: 0 0 32px var(--glow);
+      line-height: 1;
+    }
+    .range-display .label {
+      font-size: 12px;
+      color: var(--muted);
+      margin-top: 4px;
+    }
+
+    /* Attempts */
+    .attempts-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 12px 0 0;
+      border-top: 1px solid var(--border);
+      margin-top: 12px;
+    }
+    .attempts-bar .label { font-size: 13px; color: var(--muted); }
+    .dots {
+      display: flex;
+      gap: 5px;
+    }
+    .dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      border: 1.5px solid var(--border);
+      background: transparent;
+      transition: all 0.3s;
+    }
+    .dot.used { background: var(--red); border-color: var(--red); }
+    .dot.remaining { border-color: var(--accent); }
+
+    /* Input area */
+    .input-row {
+      display: flex;
+      gap: 10px;
+      margin-top: 4px;
+    }
+    .guess-input {
+      flex: 1;
+      background: var(--bg);
+      border: 1.5px solid var(--border);
+      border-radius: 10px;
+      padding: 14px 18px;
+      font-family: 'Space Mono', monospace;
+      font-size: 22px;
+      font-weight: 700;
+      color: var(--text);
+      text-align: center;
+      outline: none;
+      transition: border-color 0.2s, box-shadow 0.2s;
+      -moz-appearance: textfield;
+    }
+    .guess-input::-webkit-outer-spin-button,
+    .guess-input::-webkit-inner-spin-button { -webkit-appearance: none; }
+    .guess-input:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px var(--glow);
+    }
+    .guess-input:disabled { opacity: 0.4; cursor: not-allowed; }
+
+    .submit-btn {
+      background: var(--accent);
+      border: none;
+      border-radius: 10px;
+      padding: 14px 22px;
+      color: #fff;
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: 15px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.2s;
+      box-shadow: 0 0 20px var(--glow);
+      white-space: nowrap;
+    }
+    .submit-btn:hover { filter: brightness(1.15); transform: translateY(-1px); }
+    .submit-btn:active { transform: translateY(0); }
+    .submit-btn:disabled { opacity: 0.4; cursor: not-allowed; filter: none; transform: none; }
+
+    /* Hint message */
+    .hint-box {
+      min-height: 52px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 10px;
+      padding: 12px 16px;
+      font-size: 14px;
+      font-weight: 600;
+      text-align: center;
+      transition: all 0.3s;
+      margin-top: 4px;
+    }
+    .hint-box.empty { background: transparent; }
+    .hint-box.low { background: #ff5a7e18; color: var(--red); border: 1px solid #ff5a7e33; }
+    .hint-box.high { background: #ffd84d18; color: var(--yellow); border: 1px solid #ffd84d33; }
+    .hint-box.win { background: #3effa018; color: var(--green); border: 1px solid #3effa033; font-size: 15px; }
+    .hint-box.lose { background: #ff5a7e18; color: var(--red); border: 1px solid #ff5a7e33; font-size: 15px; }
+
+    /* History */
+    .history-list {
+      display: flex;
+      flex-direction: column;
+      gap: 7px;
+      max-height: 180px;
+      overflow-y: auto;
+      scrollbar-width: thin;
+      scrollbar-color: var(--border) transparent;
+    }
+    .history-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 8px 14px;
+      border-radius: 8px;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      font-family: 'Space Mono', monospace;
+      font-size: 13px;
+      animation: slideIn 0.25s ease;
+    }
+    .history-item .num { font-weight: 700; color: var(--text); }
+    .history-item .tag {
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 1px;
+      padding: 2px 8px;
+      border-radius: 20px;
+    }
+    .tag-low { background: #ff5a7e22; color: var(--red); }
+    .tag-high { background: #ffd84d22; color: var(--yellow); }
+    .tag-win { background: #3effa022; color: var(--green); }
+
+    /* Score */
+    .score-row {
+      display: flex;
+      gap: 10px;
+    }
+    .score-box {
+      flex: 1;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 14px;
+      text-align: center;
+    }
+    .score-box .val {
+      font-family: 'Space Mono', monospace;
+      font-size: 26px;
+      font-weight: 700;
+      color: var(--accent);
+    }
+    .score-box .lbl { font-size: 11px; color: var(--muted); margin-top: 2px; }
+
+    /* Buttons row */
+    .action-row {
+      display: flex;
+      gap: 10px;
+      margin-top: 4px;
+    }
+    .reset-btn {
+      flex: 1;
+      background: transparent;
+      border: 1.5px solid var(--border);
+      border-radius: 10px;
+      padding: 12px;
+      color: var(--muted);
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .reset-btn:hover { border-color: var(--accent); color: var(--text); }
+    .new-game-btn {
+      flex: 2;
+      background: var(--green);
+      border: none;
+      border-radius: 10px;
+      padding: 12px;
+      color: #0d0f14;
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: 14px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.2s;
+      box-shadow: 0 0 20px #3effa033;
+    }
+    .new-game-btn:hover { filter: brightness(1.1); transform: translateY(-1px); }
+
+    .section-label {
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 10px;
+    }
+
+    /* Shake animation */
+    @keyframes shake {
+      0%, 100% { transform: translateX(0); }
+      20% { transform: translateX(-6px); }
+      40% { transform: translateX(6px); }
+      60% { transform: translateX(-4px); }
+      80% { transform: translateX(4px); }
+    }
+    .shake { animation: shake 0.4s ease; }
+
+    @keyframes slideIn {
+      from { opacity: 0; transform: translateY(-8px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    /* Pulse on win */
+    @keyframes pulse {
+      0%, 100% { box-shadow: 0 0 0 0 var(--glow); }
+      50% { box-shadow: 0 0 0 12px transparent; }
+    }
+    .win-pulse { animation: pulse 0.6s ease 2; }
+
+    @media (max-width: 400px) {
+      .card { padding: 20px 16px; }
+      .range-display .big { font-size: 34px; }
+    }
+  </style>
+</head>
+<body>
+<div class="container">
+
+  <div class="header">
+    <div class="eyebrow">Mini Game · Interaktif</div>
+    <h1>Tebak <span>Angka</span></h1>
+  </div>
+
+  <!-- Difficulty -->
+  <div class="card" style="padding: 16px 20px;">
+    <div class="section-label">Tingkat Kesulitan</div>
+    <div class="difficulty-row">
+      <button class="diff-btn active" onclick="setDifficulty('mudah')">Mudah</button>
+      <button class="diff-btn" onclick="setDifficulty('sedang')">Sedang</button>
+      <button class="diff-btn" onclick="setDifficulty('sulit')">Sulit</button>
+    </div>
+  </div>
+
+  <!-- Main game card -->
+  <div class="card">
+    <!-- Range + attempts -->
+    <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:16px;">
+      <div>
+        <div class="section-label" style="margin-bottom:4px;">Rentang Angka</div>
+        <div style="font-family:'Space Mono',monospace; font-size:15px; color:var(--text);">
+          1 – <span id="maxDisplay">50</span>
+        </div>
+      </div>
+      <div style="text-align:right;">
+        <div class="section-label" style="margin-bottom:4px;">Sisa Tebakan</div>
+        <div style="font-family:'Space Mono',monospace; font-size:22px; font-weight:700; color:var(--accent);">
+          <span id="attemptsLeft">7</span><span style="color:var(--muted); font-size:14px;">/<span id="maxAttempts">7</span></span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Dots -->
+    <div id="dotsRow" class="dots" style="justify-content:center; margin-bottom:20px;"></div>
+
+    <!-- Input -->
+    <div class="input-row">
+      <input
+        type="number"
+        class="guess-input"
+        id="guessInput"
+        placeholder="?"
+        min="1"
+        max="50"
+        autocomplete="off"
+      />
+      <button class="submit-btn" id="submitBtn" onclick="submitGuess()">Tebak</button>
+    </div>
+
+    <!-- Hint -->
+    <div class="hint-box empty" id="hintBox"></div>
+  </div>
+
+  <!-- History -->
+  <div class="card" id="historyCard" style="display:none;">
+    <div class="section-label">Riwayat Tebakan</div>
+    <div class="history-list" id="historyList"></div>
+  </div>
+
+  <!-- Score -->
+  <div class="card">
+    <div class="section-label">Statistik</div>
+    <div class="score-row">
+      <div class="score-box">
+        <div class="val" id="scoreWin">0</div>
+        <div class="lbl">Menang</div>
+      </div>
+      <div class="score-box">
+        <div class="val" id="scoreLose">0</div>
+        <div class="lbl">Kalah</div>
+      </div>
+      <div class="score-box">
+        <div class="val" id="scoreBest">—</div>
+        <div class="lbl">Best (tebakan)</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Action buttons -->
+  <div class="action-row">
+    <button class="reset-btn" onclick="resetStats()">Reset Statistik</button>
+    <button class="new-game-btn" id="newGameBtn" onclick="newGame()">🎮 Main Lagi</button>
+  </div>
+
+</div>
+
+<script>
+  // ── State ──────────────────────────────────────────────
+  const configs = {
+    mudah:  { max: 50,  attempts: 7 },
+    sedang: { max: 100, attempts: 8 },
+    sulit:  { max: 200, attempts: 6 },
+  };
+
+  let difficulty = 'mudah';
+  let secret, maxVal, maxAtt, attLeft, history, gameOver;
+  let wins = 0, losses = 0, bestGuesses = null;
+
+  // ── Init ───────────────────────────────────────────────
+  function init() {
+    const cfg = configs[difficulty];
+    maxVal   = cfg.max;
+    maxAtt   = cfg.attempts;
+    attLeft  = maxAtt;
+    secret   = Math.floor(Math.random() * maxVal) + 1;
+    history  = [];
+    gameOver = false;
+
+    document.getElementById('maxDisplay').textContent = maxVal;
+    document.getElementById('maxAttempts').textContent = maxAtt;
+    document.getElementById('guessInput').max = maxVal;
+
+    renderDots();
+    updateAttempts();
+    setHint('empty', '');
+    document.getElementById('historyList').innerHTML = '';
+    document.getElementById('historyCard').style.display = 'none';
+    document.getElementById('guessInput').value = '';
+    document.getElementById('guessInput').disabled = false;
+    document.getElementById('submitBtn').disabled = false;
+    document.getElementById('guessInput').focus();
+  }
+
+  // ── Difficulty ─────────────────────────────────────────
+  function setDifficulty(d) {
+    difficulty = d;
+    document.querySelectorAll('.diff-btn').forEach(btn => {
+      btn.classList.toggle('active', btn.textContent.toLowerCase() === d);
+    });
+    newGame();
+  }
+
+  // ── Dots ───────────────────────────────────────────────
+  function renderDots() {
+    const row = document.getElementById('dotsRow');
+    row.innerHTML = '';
+    for (let i = 0; i < maxAtt; i++) {
+      const d = document.createElement('div');
+      d.className = 'dot remaining';
+      d.id = `dot-${i}`;
+      row.appendChild(d);
+    }
+  }
+
+  function markDot(index) {
+    const d = document.getElementById(`dot-${index}`);
+    if (d) { d.classList.remove('remaining'); d.classList.add('used'); }
+  }
+
+  function updateAttempts() {
+    document.getElementById('attemptsLeft').textContent = attLeft;
+  }
+
+  // ── Hint box ───────────────────────────────────────────
+  function setHint(type, msg) {
+    const box = document.getElementById('hintBox');
+    box.className = 'hint-box ' + type;
+    box.textContent = msg;
+  }
+
+  // ── Submit ─────────────────────────────────────────────
+  function submitGuess() {
+    if (gameOver) return;
+    const inp = document.getElementById('guessInput');
+    const val = parseInt(inp.value);
+
+    if (!inp.value || isNaN(val) || val < 1 || val > maxVal) {
+      inp.classList.add('shake');
+      setTimeout(() => inp.classList.remove('shake'), 400);
+      setHint('low', `⚠️ Masukkan angka antara 1 – ${maxVal}`);
+      return;
+    }
+
+    const usedIndex = maxAtt - attLeft;
+    markDot(usedIndex);
+    attLeft--;
+    updateAttempts();
+
+    // Check duplicate
+    if (history.includes(val)) {
+      setHint('high', `😅 Kamu sudah menebak ${val} sebelumnya!`);
+      inp.value = '';
+      return;
+    }
+
+    history.push(val);
+    addHistory(val);
+
+    if (val === secret) {
+      // Win
+      const usedAtt = maxAtt - attLeft;
+      gameOver = true;
+      setHint('win', `🎉 Benar! Angkanya adalah ${secret}. Kamu menebak dalam ${usedAtt} kesempatan!`);
+      document.getElementById('guessInput').disabled = true;
+      document.getElementById('submitBtn').disabled = true;
+      wins++;
+      if (bestGuesses === null || usedAtt < bestGuesses) bestGuesses = usedAtt;
+      updateScore();
+      document.getElementById('hintBox').classList.add('win-pulse');
+    } else if (attLeft === 0) {
+      // Lose
+      gameOver = true;
+      setHint('lose', `💀 Kesempatan habis! Angka rahasianya adalah ${secret}.`);
+      document.getElementById('guessInput').disabled = true;
+      document.getElementById('submitBtn').disabled = true;
+      losses++;
+      updateScore();
+    } else if (val < secret) {
+      setHint('low', `📉 Terlalu kecil! Coba lebih tinggi. (Sisa: ${attLeft})`);
+    } else {
+      setHint('high', `📈 Terlalu besar! Coba lebih kecil. (Sisa: ${attLeft})`);
+    }
+
+    inp.value = '';
+    inp.focus();
+  }
+
+  // ── History ────────────────────────────────────────────
+  function addHistory(val) {
+    const card = document.getElementById('historyCard');
+    card.style.display = '';
+    const list = document.getElementById('historyList');
+    const item = document.createElement('div');
+    item.className = 'history-item';
+    let tagClass, tagText;
+    if (val === secret) { tagClass = 'tag-win'; tagText = 'TEPAT!'; }
+    else if (val < secret) { tagClass = 'tag-low'; tagText = '▲ NAIK'; }
+    else { tagClass = 'tag-high'; tagText = '▼ TURUN'; }
+    item.innerHTML = `<span class="num">${val}</span><span class="tag ${tagClass}">${tagText}</span>`;
+    list.prepend(item);
+  }
+
+  // ── Score ──────────────────────────────────────────────
+  function updateScore() {
+    document.getElementById('scoreWin').textContent = wins;
+    document.getElementById('scoreLose').textContent = losses;
+    document.getElementById('scoreBest').textContent = bestGuesses !== null ? bestGuesses : '—';
+  }
+
+  function resetStats() {
+    wins = 0; losses = 0; bestGuesses = null;
+    updateScore();
+    newGame();
+  }
+
+  // ── New game ───────────────────────────────────────────
+  function newGame() {
+    init();
+  }
+
+  // ── Enter key ──────────────────────────────────────────
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Enter') submitGuess();
+  });
+
+  // ── Start ──────────────────────────────────────────────
+  init();
+</script>
+</body>
+</html>
